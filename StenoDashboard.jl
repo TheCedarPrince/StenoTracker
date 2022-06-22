@@ -22,44 +22,53 @@ practice_data =
 
 practice_data.PRACTICE_DATE = Dates.Date.(practice_data.PRACTICE_DATE)
 sort!(practice_data, :PRACTICE_DATE)
+practice_groups = groupby(practice_data, :EXERCISE)
 
 pd(; x, y) = PlotData(x = x, y = y, plot = StipplePlotly.Charts.PLOT_TYPE_LINE)
 
 @reactive mutable struct Model <: ReactiveModel
-    wpm_data::R{Vector{Vector{PlotData}}} = [[
-        pd(
-            x = unique(group.PRACTICE_DATE) , 
-            y = [mean(g.WPM) for g in groupby(group, :PRACTICE_DATE)],
-        ) for group in groupby(practice_data, :EXERCISE)
-    ]]
+    wpm_data::R{Vector{Vector{PlotData}}} = [
+        groupby(group, :PRACTICE_DATE) |>
+        df -> combine(df, :WPM => mean => :WPM_MEAN) |>
+        df -> [pd(x = df.PRACTICE_DATE, y = df.WPM_MEAN)]
+        for group in practice_groups
+    ]
     wpm_layout::R{Vector{PlotLayout}} = [
         PlotLayout(
-            title = PlotLayoutTitle(text = "$(group.EXERCISE |> first)", font = Font(24)),
+            title = PlotLayoutTitle(text = "WPM of $(group.EXERCISE |> first)", font = Font(24)),
             xaxis = [PlotLayoutAxis(xy = "x", title_text = "Date", font = Font(14))],
             yaxis = [
-                PlotLayoutAxis(xy = "y", title_text = "Average Words Per Minute", font = Font(14)),
+                PlotLayoutAxis(
+                    xy = "y",
+                    title_text = "Average Words Per Minute",
+                    font = Font(14),
+                ),
             ],
             showlegend = false,
             margin_r = 0,
-        ) for group in groupby(practice_data, :EXERCISE)
+        ) for group in practice_groups
     ]
 
-    acc_data::R{Vector{Vector{PlotData}}} = [[
-        pd(
-            x = unique(group.PRACTICE_DATE) , 
-            y = [mean(g.ACC) for g in groupby(group, :PRACTICE_DATE)],
-        ) for group in groupby(practice_data, :EXERCISE)
-    ]]
+    acc_data::R{Vector{Vector{PlotData}}} = [
+        groupby(group, :PRACTICE_DATE) |>
+        df -> combine(df, :ACC => mean => :ACC_MEAN) |>
+        df -> [pd(x = df.PRACTICE_DATE, y = df.ACC_MEAN)]
+        for group in practice_groups
+    ]
     acc_layout::R{Vector{PlotLayout}} = [
         PlotLayout(
-            title = PlotLayoutTitle(text = "$(group.EXERCISE |> first)", font = Font(24)),
+            title = PlotLayoutTitle(text = "ACC of $(group.EXERCISE |> first)", font = Font(24)),
             xaxis = [PlotLayoutAxis(xy = "x", title_text = "Date", font = Font(14))],
             yaxis = [
-                PlotLayoutAxis(xy = "y", title_text = "Average Session Accuracy", font = Font(14)),
+                PlotLayoutAxis(
+                    xy = "y",
+                    title_text = "Average Accuracy",
+                    font = Font(14),
+                ),
             ],
             showlegend = false,
             margin_r = 0,
-        ) for group in groupby(practice_data, :EXERCISE)
+        ) for group in practice_groups
     ]
 
 end
@@ -77,23 +86,14 @@ function ui(model::Model)
     page(
         model,
         class = "container",
-        [
-            row([h1("Stenography Practice Results")])
-            row([
-                cell(
-                    class = "st-module",
-                    [plot("wpm_data[index-1]", layout = "wpm_layout[index-1]")],
-                    @recur("index in $(length(model.wpm_data[]))")
-                ),
-            ])
-            row([
-                cell(
-                    class = "st-module",
-                    [plot("acc_data[index-1]", layout = "acc_layout[index-1]")],
-                    @recur("index in $(length(model.acc_data[]))")
-                ),
-            ])
-        ],
+        row([
+            cell([
+                plot("wpm_data[index-1]", layout = "wpm_layout[index-1]",
+             @recur("index in $(length(practice_groups))"))])
+            cell([
+                plot("acc_data[index-1]", layout = "acc_layout[index-1]",
+             @recur("index in $(length(practice_groups))"))])
+        ]),
     )
 end
 
