@@ -1,4 +1,7 @@
-function log_sessions(; db_name = "../data/steno.db")
+"""
+TODO: Add docstring
+"""
+function log_sessions(; db_name = "StenoTracker.db")
     log_exercise = true
     while log_exercise == true
         run(`clear`)
@@ -18,8 +21,13 @@ function log_sessions(; db_name = "../data/steno.db")
 
         println("Practice session has been logged!")
 
-        if "" != prompt("To input another practice session press ENTER")
+        if "" != prompt("Nice work! 🌟 To record another session press ENTER!")
             log_exercise = false
         end
+        
+        run(`clear`)
+        println("Great work and have an awesome day! 🌟")
     end
 end
+
+export log_sessions
